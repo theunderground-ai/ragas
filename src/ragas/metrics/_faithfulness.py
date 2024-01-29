@@ -172,18 +172,37 @@ class Faithfulness(MetricWithLLM):
             verdict_score_map = {"yes": 1, "no": 0, "null": np.nan}
             scores = []
             for output in outputs:
-                output = json_loader.safe_load(output[0].text, self.llm)
-                output = output if output else []
-                faithful_statements = sum(
-                    verdict_score_map.get(dict.get("verdict", "").lower(), np.nan)
-                    for dict in output
-                )
-                num_statements = len(output)
-                if num_statements:
-                    score = faithful_statements / num_statements
+                # json fixing is unlikely to work because there are any number of things that can go wrong, from not json at all, to a missing comma
+                if False and output[0].text.find('"verdict": "Yes') > -1:
+                    verdict = json_loader.safe_load(output[0].text, self.llm)
+                    if isinstance(verdict, dict) and "verdict" in verdict:
+                        verdict = [verdict]
+
+                    if isinstance(verdict, list):
+                        faithful_statements = sum(
+                            verdict_score_map.get(dict.get("verdict", "").lower(), np.nan)
+                            for dict in output
+                        )
+                        num_statements = len(output)
+                        if num_statements:
+                            score = faithful_statements / num_statements
+                        else:
+                            score = np.nan
+
+                    
+                    scores.append(score)
                 else:
-                    score = np.nan
-                scores.append(score)
+                    # output = output if isinstance(output, list) else [output]
+                    is_true = output[0].text.__contains__('statement is true') or output[0].text.find('"verdict": "Yes') > -1
+
+                    # faithful_statements = sum(
+                    #     verdict_score_map.get(dict.get("verdict", "").lower(), np.nan)
+                    #     for dict in output
+                    # )
+                    # num_statements = len(output)
+                    # if num_statements:
+                    score = 1 if is_true else 0
+                    scores.append(score)
 
         return scores
 

@@ -98,7 +98,7 @@ class JsonLoader:
             try:
                 start, end = self._find_outermost_json(text)
                 return json.loads(text[start:end])
-            except ValueError:
+            except ValueError as ve:
                 text = self._fix_to_json(text, llm)
             retry += 1
 
@@ -111,13 +111,16 @@ class JsonLoader:
         callbacks: t.Optional[CallbackManager] = None,
         callback_group_name: str = "batch",
     ):
-       # TODO (executor)
+        # TODO (executor)
         with trace_as_chain_group(
             callback_group_name, callback_manager=callbacks
         ) as batch_group:
             human_prompt = ChatPromptTemplate.from_messages(
                 [JSON_PROMPT.format(input=text)]
             )
+            if len(text.strip()) == 0:
+                return ''
+            
             results = llm.generate(
                 [human_prompt],
                 n=1,

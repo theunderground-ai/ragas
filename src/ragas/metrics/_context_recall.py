@@ -122,7 +122,7 @@ class ContextRecall(MetricWithLLM):
                 if response:
                     response = [
                         int(item.get("Attributed", "").lower() == "yes")
-                        if item.get("Attributed")
+                        if not isinstance(item, str) and item.get("Attributed")
                         else np.nan
                         for item in response
                     ]
